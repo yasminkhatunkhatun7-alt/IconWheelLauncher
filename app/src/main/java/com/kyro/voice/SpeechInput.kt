@@ -9,7 +9,6 @@ import android.speech.SpeechRecognizer
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.util.Locale
 
 class SpeechInput(private val context: Context) {
 
@@ -20,6 +19,9 @@ class SpeechInput(private val context: Context) {
 
     private val _spokenText = MutableStateFlow("")
     val spokenText: StateFlow<String> = _spokenText
+
+    private val _rmsLevel = MutableStateFlow(0f)
+    val rmsLevel: StateFlow<Float> = _rmsLevel
 
     init {
         try {
@@ -36,9 +38,13 @@ class SpeechInput(private val context: Context) {
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
                 _isListening.value = true
+                _rmsLevel.value = 0f
             }
             override fun onBeginningOfSpeech() {}
-            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onRmsChanged(rmsdB: Float) {
+                // Feature 8: Emotion Detection (Capture RMS)
+                _rmsLevel.value = rmsdB
+            }
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {
                 _isListening.value = false

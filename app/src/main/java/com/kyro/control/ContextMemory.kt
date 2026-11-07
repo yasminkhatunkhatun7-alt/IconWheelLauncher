@@ -17,8 +17,10 @@ class ContextMemory {
 
         if (lastSubject != null) {
             for (pronoun in pronouns) {
-                if (resolvedText.contains(pronoun)) {
-                    resolvedText = resolvedText.replace(pronoun, lastSubject!!)
+                // Use regex with word boundaries to prevent replacing sub-strings (e.g. 'withOUT')
+                val regex = Regex("\\b$pronoun\\b")
+                if (regex.containsMatchIn(resolvedText)) {
+                    resolvedText = resolvedText.replace(regex, lastSubject!!)
                 }
             }
         }

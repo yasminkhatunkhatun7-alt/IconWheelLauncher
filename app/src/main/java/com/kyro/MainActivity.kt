@@ -15,6 +15,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.kyro.ui.home.HomeScreen
+import com.kyro.ui.SplashScreen
+import androidx.compose.runtime.*
 import com.kyro.ui.theme.KyroTheme
 
 class MainActivity : ComponentActivity() {
@@ -29,6 +31,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         checkAndRequestPermissions()
+        ContextCompat.startForegroundService(this, Intent(this, com.kyro.service.ProactiveService::class.java))
 
         val appModule = (application as KyroApplication).appModule
 
@@ -38,7 +41,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    HomeScreen(appModule = appModule)
+                    var showSplash by remember { mutableStateOf(true) }
+                    if (showSplash) {
+                        SplashScreen { showSplash = false }
+                    } else {
+                        HomeScreen(appModule = appModule)
+                    }
                 }
             }
         }

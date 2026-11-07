@@ -39,7 +39,7 @@ class TtsEngine(private val context: Context) : TextToSpeech.OnInitListener {
                 Log.e("KYRO_TTS", "Language en-IN not supported")
             } else {
                 isInitialized = true
-                tts?.setPitch(0.85f) // Jarvis-style pitch
+                tts?.setPitch(0.85f) // Default Jarvis-style pitch
 
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {
@@ -60,10 +60,18 @@ class TtsEngine(private val context: Context) : TextToSpeech.OnInitListener {
         }
     }
 
-    fun speak(text: String) {
+    fun speak(text: String, rmsLevel: Float = 0f) {
         if (!isInitialized) return
 
         requestAudioFocus()
+
+        // Feature 8: Emotion Detection Pitch adjustment
+        // If RMS is extremely high, user is likely shouting. Lower pitch to sound calm.
+        if (rmsLevel > 10f) {
+            tts?.setPitch(0.6f)
+        } else {
+            tts?.setPitch(0.85f)
+        }
 
         val params = Bundle().apply {
             putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "KYRO_UTTERANCE")

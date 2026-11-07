@@ -1,0 +1,2 @@
+#!/bin/bash
+sed -i "/db?.execSQL(\"INSERT INTO commands (pattern, action, parameters) VALUES ('message bhejo', 'WHATSAPP_MSG', '')\")/a \        db?.execSQL(\"INSERT INTO commands (pattern, action, parameters) VALUES ('youtube par', 'YOUTUBE_SEARCH', '')\")\n        db?.execSQL(\"INSERT INTO commands (pattern, action, parameters) VALUES ('play reels', 'REELS_SCROLL', '')\")\n        db?.execSQL(\"INSERT INTO commands (pattern, action, parameters) VALUES ('auto scroll', 'REELS_SCROLL', '')\")" app/src/main/java/com/kyro/brain/RawBrainQuery.kt

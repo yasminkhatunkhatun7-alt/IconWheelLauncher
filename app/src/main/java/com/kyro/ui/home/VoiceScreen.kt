@@ -4,14 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,40 +29,32 @@ fun VoiceScreen(appModule: AppModule?, onClose: () -> Unit) {
     var transcription by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    // Observers for speech engine
-    val isListeningFlow = appModule?.speechInput?.isListening?.collectAsState()
     val spokenTextFlow = appModule?.speechInput?.spokenText?.collectAsState()
     val isSpeakingFlow = appModule?.ttsEngine?.isSpeaking?.collectAsState()
 
-    // State machine logic
     LaunchedEffect(Unit) {
-        // Initial start
         voiceState = VoiceState.LISTENING
         appModule?.speechInput?.startListening()
     }
 
-    // Handle transcription received
     LaunchedEffect(spokenTextFlow?.value) {
         val text = spokenTextFlow?.value
         if (!text.isNullOrBlank() && voiceState == VoiceState.LISTENING) {
             transcription = text
             voiceState = VoiceState.THINKING
 
-            // Send to Brain
             scope.launch {
-                val response = appModule?.commandParser?.processCommand(text)
-                val reply = response?.responseText ?: "Data nahi hai"
+                val responses = appModule?.commandParser?.processCommand(text)
+                val reply = responses?.joinToString(" ") { it.responseText } ?: "Data nahi hai"
                 transcription = reply
                 voiceState = VoiceState.SPEAKING
-                appModule?.ttsEngine?.speak(reply)
+                appModule?.ttsEngine?.speak(reply, appModule.speechInput.rmsLevel.value)
             }
         }
     }
 
-    // Handle TTS finishing to loop back to listening
     LaunchedEffect(isSpeakingFlow?.value) {
         if (isSpeakingFlow?.value == false && voiceState == VoiceState.SPEAKING) {
-            // Small delay for natural pacing
             delay(500)
             transcription = ""
             voiceState = VoiceState.LISTENING
@@ -72,11 +62,10 @@ fun VoiceScreen(appModule: AppModule?, onClose: () -> Unit) {
         }
     }
 
-    // Cleanup on close
     DisposableEffect(Unit) {
         onDispose {
             appModule?.speechInput?.stopListening()
-            appModule?.ttsEngine?.stop() // Note: might want a softer stop, not full shutdown for prod
+            appModule?.ttsEngine?.stop()
         }
     }
 
@@ -88,17 +77,20 @@ fun VoiceScreen(appModule: AppModule?, onClose: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Top Spacer
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Orb and Status
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Center
         ) {
             KyroOrb(
-                isListening = voiceState == VoiceState.LISTENING || voiceState == VoiceState.THINKING
+                state = when (voiceState) {
+                    VoiceState.LISTENING -> OrbState.LISTENING
+                    VoiceState.THINKING -> OrbState.THINKING
+                    VoiceState.SPEAKING -> OrbState.SPEAKING
+                    else -> OrbState.IDLE
+                }
             )
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -133,7 +125,6 @@ fun VoiceScreen(appModule: AppModule?, onClose: () -> Unit) {
             )
         }
 
-        // Close Button
         Box(
             modifier = Modifier
                 .padding(bottom = 32.dp)
@@ -146,7 +137,6 @@ fun VoiceScreen(appModule: AppModule?, onClose: () -> Unit) {
                 },
             contentAlignment = Alignment.Center
         ) {
-            // Drawing a simple X programmatically using Text since we don't have vector assets guaranteed
             Text(
                 text = "X",
                 color = Color.White,

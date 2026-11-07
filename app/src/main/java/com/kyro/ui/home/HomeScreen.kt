@@ -65,16 +65,15 @@ fun HomeScreen(appModule: AppModule? = null) {
                 ) { tab ->
                     when (tab) {
                         NavTab.HOME -> {
+                            AmbientWallpaper()
                             Column(
                                 modifier = Modifier.fillMaxSize(),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 KyroOrb(
-                                    isListening = false,
-                                    modifier = Modifier.clickable {
-                                        isVoiceModeActive = true
-                                    }
+                                    state = OrbState.IDLE,
+                                    modifier = Modifier.clickable { isVoiceModeActive = true }
                                 )
                                 Spacer(modifier = Modifier.height(32.dp))
                                 Text(
@@ -121,7 +120,6 @@ fun KyroBottomBar(selectedTab: NavTab, onTabSelected: (NavTab) -> Unit) {
         NavTab.values().forEach { tab ->
             val isSelected = selectedTab == tab
 
-            // Animated background color for smoother transition
             val bgColor by animateColorAsState(
                 targetValue = if (isSelected) Amber.copy(alpha = 0.2f) else Color.Transparent,
                 animationSpec = tween(300),

@@ -23,6 +23,10 @@ class RawBrainQuery(context: Context) : SQLiteOpenHelper(context, DB_NAME, null,
         db?.execSQL("INSERT INTO commands (pattern, action, parameters) VALUES ('scroll down', 'ACCESSIBILITY_ACTION', 'SCROLL_DOWN')")
         db?.execSQL("INSERT INTO commands (pattern, action, parameters) VALUES ('read screen', 'ACCESSIBILITY_ACTION', 'READ_SCREEN')")
         db?.execSQL("INSERT INTO commands (pattern, action, parameters) VALUES ('message bhejo', 'WHATSAPP_MSG', '')")
+        db?.execSQL("INSERT INTO commands (pattern, action, parameters) VALUES ('youtube par', 'YOUTUBE_SEARCH', '')")
+        db?.execSQL("INSERT INTO commands (pattern, action, parameters) VALUES ('play reels', 'REELS_SCROLL', '')")
+        db?.execSQL("INSERT INTO commands (pattern, action, parameters) VALUES ('fake call', 'FAKE_CALL', '')")
+        db?.execSQL("INSERT INTO commands (pattern, action, parameters) VALUES ('auto scroll', 'REELS_SCROLL', '')")
     }
 
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
