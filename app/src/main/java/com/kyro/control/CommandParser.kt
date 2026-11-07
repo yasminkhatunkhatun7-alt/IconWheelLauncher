@@ -6,6 +6,7 @@ import android.media.AudioManager
 import android.provider.Settings
 import android.util.Log
 import com.kyro.brain.RawBrainQuery
+import com.kyro.brain.AiBackend
 import com.kyro.brain.TermuxServerClient
 import java.util.Calendar
 import android.app.NotificationManager
@@ -13,7 +14,7 @@ import android.app.NotificationManager
 class CommandParser(
     private val context: Context,
     private val brainQuery: RawBrainQuery,
-    private val termuxClient: TermuxServerClient,
+    private val aiBackend: AiBackend,
     private val contextMemory: ContextMemory
 ) {
 
@@ -21,6 +22,7 @@ class CommandParser(
     private val securityPassword = "obsidian"
     private var isLocked = true
     private var pendingLockedCommand: String? = null
+    private var pendingFuzzyAction: String? = null
 
     suspend fun processCommand(rawText: String): List<CommandResponse> {
         var cleanedText = rawText.lowercase()
@@ -40,6 +42,18 @@ class CommandParser(
                 pendingLockedCommand = null
                 return listOf(CommandResponse("DENIED", responseText = "Incorrect password. Access denied."))
             }
+        }
+
+        // Step 2: Fuzzy         val sensitiveKeywords = listOf("call", "message", "sms", "pay") Broken Word Intelligence
+        if (pendingFuzzyAction != null) {
+            val completeAction = "$pendingFuzzyAction $resolvedText"
+            pendingFuzzyAction = null
+            return processMultiActions(completeAction)
+        }
+
+        if (resolvedText == "kholo" || resolvedText == "open" || resolvedText == "chalao") {
+            pendingFuzzyAction = resolvedText
+            return listOf(CommandResponse("ASK_CLARIFICATION", responseText = "Sir, aap kya kholna chahte hain?"))
         }
 
         val sensitiveKeywords = listOf("call", "message", "sms", "pay")
@@ -95,7 +109,7 @@ class CommandParser(
         }
 
         val pastContext = brainQuery.getRelevantContext(resolvedText)
-        val aiResponse = termuxClient.sendQuery(resolvedText, pastContext)
+        val aiResponse = aiBackend.sendQuery(resolvedText, pastContext)
         brainQuery.saveConversation(resolvedText, aiResponse)
         return listOf(CommandResponse("SPEAK", responseText = aiResponse))
     }
@@ -179,6 +193,7 @@ class CommandParser(
 
     private fun triggerAccessibilityAction(action: String, payload: String) {
         val intent = Intent("com.kyro.ACTION_AUTOMATION")
+        intent.setPackage(context.packageName)
         intent.putExtra("action_type", action)
         intent.putExtra("payload", payload)
         context.sendBroadcast(intent)

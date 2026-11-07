@@ -45,8 +45,9 @@ fun VoiceScreen(appModule: AppModule?, onClose: () -> Unit) {
 
             scope.launch {
                 val responses = appModule?.commandParser?.processCommand(text)
-                val reply = responses?.joinToString(" ") { it.responseText } ?: "Data nahi hai"
-                transcription = reply
+                val reply = responses?.joinToString(" ") { it.responseText }?.trim() ?: "Data nahi hai"
+                if (reply.isBlank()) { transcription = "Done" } else {  }
+
                 voiceState = VoiceState.SPEAKING
                 appModule?.ttsEngine?.speak(reply, appModule.speechInput.rmsLevel.value)
             }

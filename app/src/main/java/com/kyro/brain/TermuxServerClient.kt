@@ -10,7 +10,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
-class TermuxServerClient {
+class TermuxServerClient : AiBackend {
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -18,9 +18,9 @@ class TermuxServerClient {
         .build()
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
-    var serverUrl: String = "http://127.0.0.1:8080/completion"
+    override var serverUrl: String = "http://127.0.0.1:8080/completion"
 
-    suspend fun sendQuery(prompt: String, contextLog: List<Pair<String, String>>): String = withContext(Dispatchers.IO) {
+    override suspend fun sendQuery(prompt: String, contextLog: List<Pair<String, String>>): String = withContext(Dispatchers.IO) {
         try {
             // Feature 1: RAG Context Injection
             val contextString = if (contextLog.isNotEmpty()) {

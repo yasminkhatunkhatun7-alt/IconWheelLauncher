@@ -50,7 +50,7 @@ class WakeWordService : Service() {
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .build()
 
-        startForeground(2, notification)
+        try { startForeground(2, notification) } catch (e: Exception) { Log.e("KYRO_WAKE", "startForeground failed", e) }
         startListening()
 
         return START_STICKY

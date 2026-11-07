@@ -48,7 +48,7 @@ class ProactiveService : Service() {
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .build()
 
-        startForeground(1, notification)
+        try { startForeground(1, notification) } catch (e: Exception) { Log.e("KYRO_PROACTIVE", "startForeground failed", e) }
 
         handler.post(proactiveRunnable)
 

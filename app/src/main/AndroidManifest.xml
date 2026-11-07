@@ -47,10 +47,14 @@
             android:exported="false"
             android:theme="@style/Theme.Kyro" />
 
+        <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Monitoring system battery and time for proactive AI assistance" />
+
         <service
             android:name=".service.ProactiveService"
             android:foregroundServiceType="specialUse"
             android:exported="false" />
+
+        <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Monitoring system battery and time for proactive AI assistance" />
 
         <service
             android:name=".service.KyroAccessibilityService"
@@ -63,7 +67,9 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
-            <service
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Monitoring system battery and time for proactive AI assistance" />
+
+        <service
             android:name=".service.WakeWordService"
             android:foregroundServiceType="microphone"
             android:exported="false" />

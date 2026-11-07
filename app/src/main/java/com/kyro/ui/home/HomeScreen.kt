@@ -90,7 +90,7 @@ fun HomeScreen(appModule: AppModule? = null) {
                         NavTab.ACTIVITY -> Text("ACTIVITY TRACKER", color = WarmIvory)
                         NavTab.HOURS -> Text("HOURS & SCREEN TIME", color = WarmIvory)
                         NavTab.SETUP -> {
-                            val currentUrl = appModule?.termuxServerClient?.serverUrl ?: "http://127.0.0.1:8080/completion"
+                            val currentUrl = appModule?.aiBackend?.serverUrl ?: "http://127.0.0.1:8080/completion"
                             val currentWakeWord = appModule?.sharedPreferences?.getString("customWakeWord", "kyro") ?: "kyro"
                             SetupScreen(
                                 currentUrl = currentUrl,

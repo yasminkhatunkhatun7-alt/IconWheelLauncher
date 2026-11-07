@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,17 +25,17 @@ class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        // Handle permission results
+        val audioGranted = permissions[Manifest.permission.RECORD_AUDIO] == true
+        if (audioGranted) {
+            startBackgroundServices()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val openVoiceMode = intent.getBooleanExtra("OPEN_VOICE_MODE", false)
         super.onCreate(savedInstanceState)
+        val openVoiceMode = intent.getBooleanExtra("OPEN_VOICE_MODE", false)
 
         checkAndRequestPermissions()
-        val startWakeIntent = Intent(this, com.kyro.service.WakeWordService::class.java)
-        ContextCompat.startForegroundService(this, startWakeIntent)
-        ContextCompat.startForegroundService(this, Intent(this, com.kyro.service.ProactiveService::class.java))
 
         val appModule = (application as KyroApplication).appModule
 
@@ -44,11 +45,11 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    appModule.sharedPreferences.edit().putBoolean("start_in_voice", openVoiceMode).apply()
                     var showSplash by remember { mutableStateOf(true) }
                     if (showSplash) {
                         SplashScreen { showSplash = false }
                     } else {
-                        appModule.sharedPreferences.edit().putBoolean("start_in_voice", openVoiceMode).apply()
                         HomeScreen(appModule = appModule)
                     }
                 }
@@ -69,6 +70,24 @@ class MainActivity : ComponentActivity() {
 
         if (permissionsToRequest.isNotEmpty()) {
             requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
+        } else {
+            // Already have permissions
+            startBackgroundServices()
+        }
+    }
+
+    private fun startBackgroundServices() {
+        try {
+            val startWakeIntent = Intent(this, com.kyro.service.WakeWordService::class.java)
+            ContextCompat.startForegroundService(this, startWakeIntent)
+        } catch (e: Exception) {
+            Log.e("KYRO", "Failed to start WakeWordService", e)
+        }
+
+        try {
+            ContextCompat.startForegroundService(this, Intent(this, com.kyro.service.ProactiveService::class.java))
+        } catch (e: Exception) {
+             Log.e("KYRO", "Failed to start ProactiveService", e)
         }
     }
 }
