@@ -27,7 +27,7 @@ class AppModule(private val context: Context) {
 
     val brainQuery by lazy { RawBrainQuery(context) }
     val contextMemory by lazy { ContextMemory() }
-    val commandParser by lazy { CommandParser(brainQuery, termuxServerClient, contextMemory) }
+    val commandParser by lazy { CommandParser(context, brainQuery, termuxServerClient, contextMemory) }
 
     val ttsEngine by lazy { TtsEngine(context) }
     val speechInput by lazy { SpeechInput(context) }

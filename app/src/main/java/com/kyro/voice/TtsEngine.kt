@@ -1,11 +1,11 @@
 package com.kyro.voice
 
-import android.os.Bundle
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
+import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
@@ -77,6 +77,16 @@ class TtsEngine(private val context: Context) : TextToSpeech.OnInitListener {
         }
     }
 
+    fun stop() {
+        try {
+            tts?.stop()
+            _isSpeaking.value = false
+            abandonAudioFocus()
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+
     private fun requestAudioFocus() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
@@ -112,7 +122,7 @@ class TtsEngine(private val context: Context) : TextToSpeech.OnInitListener {
 
     fun shutdown() {
         try {
-            tts?.stop()
+            stop()
             tts?.shutdown()
         } catch (e: Exception) {
             // Ignore

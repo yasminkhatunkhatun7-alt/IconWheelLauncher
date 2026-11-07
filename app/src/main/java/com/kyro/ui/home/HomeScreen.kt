@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,73 +19,77 @@ import com.kyro.ui.theme.DarkGraphite
 import com.kyro.ui.theme.DeepVoid
 import com.kyro.ui.theme.MutedPewter
 import com.kyro.ui.theme.WarmIvory
-import kotlinx.coroutines.launch
 
 enum class NavTab { HOME, CHAT, ACTIVITY, HOURS, SETUP }
 
 @Composable
 fun HomeScreen(appModule: AppModule? = null) {
     var selectedTab by remember { mutableStateOf(NavTab.HOME) }
-    var isListening by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
-    // For setup screen
-    val currentUrl = appModule?.termuxServerClient?.serverUrl ?: "http://127.0.0.1:8080/completion"
+    // Voice Mode specific state
+    var isVoiceModeActive by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DeepVoid)
-    ) {
-        // Top Navigation Bar
-        KyroNavBar(
-            selectedTab = selectedTab,
-            onTabSelected = { selectedTab = it }
+    if (isVoiceModeActive) {
+        VoiceScreen(
+            appModule = appModule,
+            onClose = { isVoiceModeActive = false }
         )
-
-        // Content Area
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(1f),
-            contentAlignment = Alignment.Center
-        ) {
-            when (selectedTab) {
-                NavTab.HOME -> {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        KyroOrb(
-                            isListening = isListening,
-                            modifier = Modifier.clickable {
-                                isListening = !isListening
-                                if (isListening) {
-                                    appModule?.speechInput?.startListening()
-                                } else {
-                                    appModule?.speechInput?.stopListening()
+    } else {
+        Scaffold(
+            bottomBar = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    KyroBottomBar(
+                        selectedTab = selectedTab,
+                        onTabSelected = { selectedTab = it }
+                    )
+                }
+            },
+            containerColor = DeepVoid
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                when (selectedTab) {
+                    NavTab.HOME -> {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            KyroOrb(
+                                isListening = false,
+                                modifier = Modifier.clickable {
+                                    isVoiceModeActive = true
                                 }
+                            )
+                            Spacer(modifier = Modifier.height(32.dp))
+                            Text(
+                                text = "TAP TO WAKE",
+                                color = MutedPewter,
+                                style = androidx.compose.ui.text.TextStyle(
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                    NavTab.CHAT -> Text("CHAT HISTORY", color = WarmIvory)
+                    NavTab.ACTIVITY -> Text("ACTIVITY TRACKER", color = WarmIvory)
+                    NavTab.HOURS -> Text("HOURS & SCREEN TIME", color = WarmIvory)
+                    NavTab.SETUP -> {
+                        val currentUrl = appModule?.termuxServerClient?.serverUrl ?: "http://127.0.0.1:8080/completion"
+                        SetupScreen(
+                            currentUrl = currentUrl,
+                            onUrlChange = { appModule?.updateServerUrl(it) },
+                            onSave = {
+                                appModule?.ttsEngine?.speak("Configuration saved.")
                             }
                         )
-                        Spacer(modifier = Modifier.height(32.dp))
-                        Text(
-                            text = if (isListening) "LISTENING..." else "TAP TO WAKE",
-                            color = MutedPewter,
-                            style = androidx.compose.ui.text.TextStyle(
-                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
                     }
-                }
-                NavTab.CHAT -> Text("CHAT", color = WarmIvory)
-                NavTab.ACTIVITY -> Text("ACTIVITY", color = WarmIvory)
-                NavTab.HOURS -> Text("HOURS", color = WarmIvory)
-                NavTab.SETUP -> {
-                    SetupScreen(
-                        currentUrl = currentUrl,
-                        onUrlChange = { appModule?.updateServerUrl(it) },
-                        onSave = {
-                            appModule?.ttsEngine?.speak("Configuration saved.")
-                        }
-                    )
                 }
             }
         }
@@ -92,31 +97,32 @@ fun HomeScreen(appModule: AppModule? = null) {
 }
 
 @Composable
-fun KyroNavBar(selectedTab: NavTab, onTabSelected: (NavTab) -> Unit) {
+fun KyroBottomBar(selectedTab: NavTab, onTabSelected: (NavTab) -> Unit) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(DarkGraphite.copy(alpha = 0.8f))
+            .fillMaxWidth(0.95f)
+            .clip(RoundedCornerShape(32.dp))
+            .background(DarkGraphite.copy(alpha = 0.9f))
             .padding(8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         NavTab.values().forEach { tab ->
             val isSelected = selectedTab == tab
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(24.dp))
                     .background(if (isSelected) Amber.copy(alpha = 0.2f) else Color.Transparent)
                     .clickable { onTabSelected(tab) }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
-                    text = tab.name,
+                    text = tab.name.take(3), // Shorten for bottom bar
                     color = if (isSelected) Amber else MutedPewter,
                     style = androidx.compose.ui.text.TextStyle(
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp)
                     )
                 )
             }

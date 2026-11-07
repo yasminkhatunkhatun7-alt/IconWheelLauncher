@@ -15,13 +15,14 @@ class RawBrainQuery(context: Context) : SQLiteOpenHelper(context, DB_NAME, null,
     }
 
     override fun onCreate(db: SQLiteDatabase?) {
-        // Since you mentioned the DB is in assets, we assume it's pre-populated.
-        // We will create a dummy table here just in case it's not copied yet.
         db?.execSQL("CREATE VIRTUAL TABLE IF NOT EXISTS commands USING fts4(pattern, action, parameters)")
 
-        // Dummy data
+        // Base initial commands
         db?.execSQL("INSERT INTO commands (pattern, action, parameters) VALUES ('open whatsapp', 'OPEN_APP', 'com.whatsapp')")
         db?.execSQL("INSERT INTO commands (pattern, action, parameters) VALUES ('call', 'CALL_CONTACT', '')")
+        db?.execSQL("INSERT INTO commands (pattern, action, parameters) VALUES ('scroll down', 'ACCESSIBILITY_ACTION', 'SCROLL_DOWN')")
+        db?.execSQL("INSERT INTO commands (pattern, action, parameters) VALUES ('read screen', 'ACCESSIBILITY_ACTION', 'READ_SCREEN')")
+        db?.execSQL("INSERT INTO commands (pattern, action, parameters) VALUES ('message bhejo', 'WHATSAPP_MSG', '')")
     }
 
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
@@ -32,7 +33,6 @@ class RawBrainQuery(context: Context) : SQLiteOpenHelper(context, DB_NAME, null,
         var result: BrainResult? = null
         try {
             val db = readableDatabase
-            // Simple fuzzy matching via FTS
             val cursor = db.rawQuery(
                 "SELECT action, parameters FROM commands WHERE pattern MATCH ? LIMIT 1",
                 arrayOf("$query*")
@@ -48,6 +48,19 @@ class RawBrainQuery(context: Context) : SQLiteOpenHelper(context, DB_NAME, null,
             Log.e("KYRO_BRAIN", "Database query failed", e)
         }
         result
+    }
+
+    suspend fun learnCommand(pattern: String, actions: String) = withContext(Dispatchers.IO) {
+        try {
+            val db = writableDatabase
+            val statement = db.compileStatement("INSERT INTO commands (pattern, action, parameters) VALUES (?, 'MACRO', ?)")
+            statement.bindString(1, pattern)
+            statement.bindString(2, actions)
+            statement.executeInsert()
+            Log.d("KYRO_BRAIN", "Learned new macro: $pattern -> $actions")
+        } catch (e: Exception) {
+            Log.e("KYRO_BRAIN", "Failed to learn macro", e)
+        }
     }
 }
 
