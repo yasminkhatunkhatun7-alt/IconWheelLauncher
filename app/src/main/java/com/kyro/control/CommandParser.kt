@@ -94,7 +94,9 @@ class CommandParser(
             return executeTier1Command(resolvedText, brainResult.action, brainResult.parameters)
         }
 
-        val aiResponse = termuxClient.sendQuery(resolvedText)
+        val pastContext = brainQuery.getRelevantContext(resolvedText)
+        val aiResponse = termuxClient.sendQuery(resolvedText, pastContext)
+        brainQuery.saveConversation(resolvedText, aiResponse)
         return listOf(CommandResponse("SPEAK", responseText = aiResponse))
     }
 
@@ -106,7 +108,6 @@ class CommandParser(
                 return listOf(CommandResponse(action, entity, "Calling $entity"))
             }
             "MACRO" -> {
-                // Expanding macro execution recursively
                 return processMultiActions(parameters)
             }
             "WHATSAPP_MSG" -> {
@@ -134,6 +135,10 @@ class CommandParser(
                 triggerAccessibilityAction("REELS_AUTOMATION", "")
                 return listOf(CommandResponse("REELS", responseText = "Auto scrolling activated."))
             }
+            "DEEP_LINK" -> {
+                triggerAccessibilityAction("DEEP_LINK_CLICK", parameters)
+                return listOf(CommandResponse("DEEP_LINK", responseText = "Trying to open $parameters."))
+            }
             "ACCESSIBILITY_ACTION" -> {
                 triggerAccessibilityAction(parameters, "")
                 return listOf(CommandResponse("ACCESSIBILITY", responseText = "Done."))
@@ -151,7 +156,6 @@ class CommandParser(
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
             audioManager.setStreamVolume(AudioManager.STREAM_RING, 0, 0)
 
-            // Feature 18: Turn ON DND
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (notificationManager.isNotificationPolicyAccessGranted) {
                 notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)

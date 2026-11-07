@@ -26,14 +26,13 @@ class KyroAccessibilityService : AccessibilityService() {
     private val resetHandler = Handler(Looper.getMainLooper())
     private val resetRunnable = Runnable { volumeDownPressCount = 0 }
 
-    // Feature 16: App Blocker Custom Packages
     private val isNightModeEnabled = true
     private val nightModeStartHour = 22
     private val nightModeEndHour = 6
     private val emergencyContact = "1234567890"
     private val allowedPackages = listOf("com.kyro", "com.android.dialer", "com.android.systemui", "com.whatsapp", "com.google.android.youtube")
 
-    private enum class AutomationState { IDLE, WA_SEARCH_CONTACT, WA_TYPE_MESSAGE, YT_SEARCH, YT_TYPE, YT_SELECT, REELS_SCROLLING }
+    private enum class AutomationState { IDLE, WA_SEARCH_CONTACT, WA_TYPE_MESSAGE, YT_SEARCH, YT_TYPE, YT_SELECT, REELS_SCROLLING, DEEP_LINK_SEARCH }
     private var currentState = AutomationState.IDLE
     private var pendingArg1: String? = null
     private var pendingArg2: String? = null
@@ -43,7 +42,7 @@ class KyroAccessibilityService : AccessibilityService() {
         override fun run() {
             if (currentState == AutomationState.REELS_SCROLLING) {
                 performScrollUp()
-                scrollHandler.postDelayed(this, 5000) // Scroll every 5 seconds
+                scrollHandler.postDelayed(this, 5000)
             }
         }
     }
@@ -86,6 +85,19 @@ class KyroAccessibilityService : AccessibilityService() {
                         currentState = AutomationState.IDLE
                         scrollHandler.removeCallbacksAndMessages(null)
                     }
+                    "DEEP_LINK_CLICK" -> {
+                        pendingArg1 = payload
+                        currentState = AutomationState.DEEP_LINK_SEARCH
+                        // Fallback app logic if needed, skipping explicit launch assuming they are in the target app
+                        // or launching default just to test. Assuming they just want to click what's on screen.
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            if (currentState == AutomationState.DEEP_LINK_SEARCH) {
+                                currentState = AutomationState.IDLE
+                                val appModule = (application as com.kyro.KyroApplication).appModule
+                                appModule.ttsEngine.speak("Sir, page nahi mila.")
+                            }
+                        }, 3000)
+                    }
                 }
             }
         }
@@ -118,10 +130,8 @@ class KyroAccessibilityService : AccessibilityService() {
         try {
             val packageName = event.packageName?.toString()
 
-            // Feature 16: App Blocker
             if (isNightModeEnabled && isNightTime()) {
                 if (packageName != null && !allowedPackages.contains(packageName)) {
-                    Log.d("KYRO_ACC", "Blocking app: $packageName during Night Mode")
                     performGlobalAction(GLOBAL_ACTION_HOME)
                     return
                 }
@@ -129,12 +139,24 @@ class KyroAccessibilityService : AccessibilityService() {
 
             val root = rootInActiveWindow ?: return
 
-            // Automation State Machine Dispatch
             if (currentState != AutomationState.IDLE) {
                 if (packageName == "com.whatsapp" && (currentState == AutomationState.WA_SEARCH_CONTACT || currentState == AutomationState.WA_TYPE_MESSAGE)) {
                     handleWhatsAppAutomation(root)
                 } else if (packageName == "com.google.android.youtube" && (currentState == AutomationState.YT_SEARCH || currentState == AutomationState.YT_TYPE || currentState == AutomationState.YT_SELECT)) {
                     handleYouTubeAutomation(root)
+                } else if (currentState == AutomationState.DEEP_LINK_SEARCH) {
+                    val nodes = root.findAccessibilityNodeInfosByText(pendingArg1 ?: "")
+                    for (node in nodes) {
+                        if (node.isClickable) {
+                            node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                            currentState = AutomationState.IDLE
+                            return
+                        } else if (node.parent?.isClickable == true) {
+                            node.parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                            currentState = AutomationState.IDLE
+                            return
+                        }
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -162,7 +184,6 @@ class KyroAccessibilityService : AccessibilityService() {
         }
     }
 
-    // Feature 11: Auto Swipe Up for Reels
     private fun performScrollUp() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
             val displayMetrics = resources.displayMetrics
@@ -198,7 +219,6 @@ class KyroAccessibilityService : AccessibilityService() {
             }
         }
         traverse(root)
-        Toast.makeText(this, "Screen: ${textBuilder.toString().take(50)}...", Toast.LENGTH_SHORT).show()
     }
 
     private fun clickOnText(text: String) {
@@ -245,7 +265,7 @@ class KyroAccessibilityService : AccessibilityService() {
 
                     Handler(Looper.getMainLooper()).postDelayed({
                         val refreshedRoot = rootInActiveWindow ?: return@postDelayed
-                        val contactNodes = refreshedRoot.findAccessibilityNodeInfosByText(pendingArg1)
+                        val contactNodes = refreshedRoot.findAccessibilityNodeInfosByText(pendingArg1 ?: "")
                         for (contactNode in contactNodes) {
                             if (contactNode.viewIdResourceName != "com.whatsapp:id/search_src_text") {
                                 if (contactNode.isClickable) {
@@ -286,11 +306,10 @@ class KyroAccessibilityService : AccessibilityService() {
         }
     }
 
-    // Feature 10: YouTube Search & Play Automation
     private fun handleYouTubeAutomation(node: AccessibilityNodeInfo) {
         try {
             if (currentState == AutomationState.YT_SEARCH) {
-                val searchIcons = node.findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/menu_item_1") // Typical ID for search, varies heavily
+                val searchIcons = node.findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/menu_item_1")
                 if (searchIcons.isNotEmpty()) {
                     searchIcons[0].performAction(AccessibilityNodeInfo.ACTION_CLICK)
                     currentState = AutomationState.YT_TYPE
@@ -303,7 +322,6 @@ class KyroAccessibilityService : AccessibilityService() {
                     }
                     searchInputs[0].performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
 
-                    // Emulate 'Enter' keypress or tap on the first suggestion
                     Handler(Looper.getMainLooper()).postDelayed({
                         val refreshedRoot = rootInActiveWindow ?: return@postDelayed
                         val suggestions = refreshedRoot.findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/search_query")
@@ -314,7 +332,6 @@ class KyroAccessibilityService : AccessibilityService() {
                     }, 1000)
                 }
             } else if (currentState == AutomationState.YT_SELECT) {
-                // Click the first video result in the list
                 val videoList = node.findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/results")
                 if (videoList.isNotEmpty() && videoList[0].childCount > 0) {
                     val firstVideo = videoList[0].getChild(0)
@@ -333,7 +350,6 @@ class KyroAccessibilityService : AccessibilityService() {
         currentState = AutomationState.IDLE
     }
 
-    // Feature 15: Silent SOS Mode (Hardware Buttons)
     override fun onKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN && event.action == KeyEvent.ACTION_DOWN) {
             volumeDownPressCount++
@@ -356,7 +372,7 @@ class KyroAccessibilityService : AccessibilityService() {
             vibrator.vibrate(500)
 
             val smsManager = SmsManager.getDefault()
-            val locationUrl = "http://maps.google.com/?q=0,0" // Placeholder for real GPS
+            val locationUrl = "http://maps.google.com/?q=0,0"
             smsManager.sendTextMessage(emergencyContact, null, "SOS! I need help. Location: $locationUrl", null, null)
 
             val uri = Uri.parse("https://api.whatsapp.com/send?phone=$emergencyContact&text=SOS! I need help.")

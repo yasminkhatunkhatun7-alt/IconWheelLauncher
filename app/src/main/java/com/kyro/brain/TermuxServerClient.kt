@@ -18,15 +18,21 @@ class TermuxServerClient {
         .build()
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
-
-    // Default URL, can be updated via UI settings
     var serverUrl: String = "http://127.0.0.1:8080/completion"
 
-    suspend fun sendQuery(prompt: String): String = withContext(Dispatchers.IO) {
+    suspend fun sendQuery(prompt: String, contextLog: List<Pair<String, String>>): String = withContext(Dispatchers.IO) {
         try {
-            // Llama.cpp standard payload format
+            // Feature 1: RAG Context Injection
+            val contextString = if (contextLog.isNotEmpty()) {
+                "Context of past conversations:\n" + contextLog.joinToString("\n") {
+                    "User previously asked [${it.first}] and I answered [${it.second}]"
+                } + "\n\n"
+            } else ""
+
+            val finalPrompt = "${contextString}You are KYRO, a quiet, powerful AI assistant. Answer briefly. User says: $prompt"
+
             val jsonPayload = JSONObject().apply {
-                put("prompt", "You are KYRO, a quiet, powerful AI assistant. Answer briefly. User says: $prompt")
+                put("prompt", finalPrompt)
                 put("n_predict", 100)
                 put("temperature", 0.7)
             }

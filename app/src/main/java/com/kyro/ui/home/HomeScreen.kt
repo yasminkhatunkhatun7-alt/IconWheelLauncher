@@ -28,7 +28,7 @@ enum class NavTab { HOME, CHAT, ACTIVITY, HOURS, SETUP }
 @Composable
 fun HomeScreen(appModule: AppModule? = null) {
     var selectedTab by remember { mutableStateOf(NavTab.HOME) }
-    var isVoiceModeActive by remember { mutableStateOf(false) }
+    var isVoiceModeActive by remember { mutableStateOf(appModule?.sharedPreferences?.getBoolean("start_in_voice", false) ?: false) }
 
     if (isVoiceModeActive) {
         VoiceScreen(
@@ -91,8 +91,11 @@ fun HomeScreen(appModule: AppModule? = null) {
                         NavTab.HOURS -> Text("HOURS & SCREEN TIME", color = WarmIvory)
                         NavTab.SETUP -> {
                             val currentUrl = appModule?.termuxServerClient?.serverUrl ?: "http://127.0.0.1:8080/completion"
+                            val currentWakeWord = appModule?.sharedPreferences?.getString("customWakeWord", "kyro") ?: "kyro"
                             SetupScreen(
                                 currentUrl = currentUrl,
+                                currentWakeWord = currentWakeWord,
+                                onWakeWordChange = { appModule?.updateWakeWord(it) },
                                 onUrlChange = { appModule?.updateServerUrl(it) },
                                 onSave = {
                                     appModule?.ttsEngine?.speak("Configuration saved.")

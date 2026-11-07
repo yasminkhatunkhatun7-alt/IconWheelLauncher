@@ -28,9 +28,12 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val openVoiceMode = intent.getBooleanExtra("OPEN_VOICE_MODE", false)
         super.onCreate(savedInstanceState)
 
         checkAndRequestPermissions()
+        val startWakeIntent = Intent(this, com.kyro.service.WakeWordService::class.java)
+        ContextCompat.startForegroundService(this, startWakeIntent)
         ContextCompat.startForegroundService(this, Intent(this, com.kyro.service.ProactiveService::class.java))
 
         val appModule = (application as KyroApplication).appModule
@@ -45,6 +48,7 @@ class MainActivity : ComponentActivity() {
                     if (showSplash) {
                         SplashScreen { showSplash = false }
                     } else {
+                        appModule.sharedPreferences.edit().putBoolean("start_in_voice", openVoiceMode).apply()
                         HomeScreen(appModule = appModule)
                     }
                 }

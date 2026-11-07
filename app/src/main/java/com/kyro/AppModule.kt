@@ -7,6 +7,7 @@ import com.kyro.brain.TermuxServerClient
 import com.kyro.control.CommandParser
 import com.kyro.control.ContextMemory
 import com.kyro.voice.SpeechInput
+import com.kyro.voice.SoundHelper
 import com.kyro.voice.TtsEngine
 
 class AppModule(private val context: Context) {
@@ -20,6 +21,10 @@ class AppModule(private val context: Context) {
         client
     }
 
+    fun updateWakeWord(word: String) {
+        sharedPreferences.edit().putString("customWakeWord", word).apply()
+    }
+
     fun updateServerUrl(url: String) {
         sharedPreferences.edit().putString("serverUrl", url).apply()
         termuxServerClient.serverUrl = url
@@ -30,5 +35,6 @@ class AppModule(private val context: Context) {
     val commandParser by lazy { CommandParser(context, brainQuery, termuxServerClient, contextMemory) }
 
     val ttsEngine by lazy { TtsEngine(context) }
-    val speechInput by lazy { SpeechInput(context) }
+    val soundHelper by lazy { SoundHelper(context) }
+    val speechInput by lazy { SpeechInput(context, soundHelper) }
 }

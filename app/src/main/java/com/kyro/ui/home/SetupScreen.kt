@@ -21,10 +21,13 @@ import com.kyro.ui.theme.WarmIvory
 @Composable
 fun SetupScreen(
     currentUrl: String,
+    currentWakeWord: String,
     onUrlChange: (String) -> Unit,
+    onWakeWordChange: (String) -> Unit,
     onSave: () -> Unit
 ) {
     var urlText by remember { mutableStateOf(currentUrl) }
+    var wakeWordText by remember { mutableStateOf(currentWakeWord) }
 
     Column(
         modifier = Modifier
@@ -39,7 +42,6 @@ fun SetupScreen(
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
-        // Glassmorphism Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -64,11 +66,28 @@ fun SetupScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = wakeWordText,
+                    onValueChange = { wakeWordText = it },
+                    label = { Text("Custom Wake Word", color = WarmIvory) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Amber,
+                        unfocusedBorderColor = DarkGraphite,
+                        focusedTextColor = WarmIvory,
+                        unfocusedTextColor = WarmIvory,
+                        cursorColor = Amber
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
                     onClick = {
                         onUrlChange(urlText)
+                        onWakeWordChange(wakeWordText)
                         onSave()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = DeepVoid),

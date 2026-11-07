@@ -10,7 +10,7 @@ import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-class SpeechInput(private val context: Context) {
+class SpeechInput(private val context: Context, private val soundHelper: SoundHelper) {
 
     private var speechRecognizer: SpeechRecognizer? = null
 
@@ -37,6 +37,8 @@ class SpeechInput(private val context: Context) {
     private fun setupListener() {
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
+                soundHelper.playWakeBeep()
+                soundHelper.vibrateListening()
                 _isListening.value = true
                 _rmsLevel.value = 0f
             }
@@ -50,10 +52,12 @@ class SpeechInput(private val context: Context) {
                 _isListening.value = false
             }
             override fun onError(error: Int) {
+                soundHelper.vibrateError()
                 _isListening.value = false
                 Log.e("KYRO_SPEECH", "Error code: $error")
             }
             override fun onResults(results: Bundle?) {
+                soundHelper.vibrateSuccess()
                 _isListening.value = false
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 if (!matches.isNullOrEmpty()) {
