@@ -1,5 +1,8 @@
 package com.kyro.ui.home
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,8 +28,6 @@ enum class NavTab { HOME, CHAT, ACTIVITY, HOURS, SETUP }
 @Composable
 fun HomeScreen(appModule: AppModule? = null) {
     var selectedTab by remember { mutableStateOf(NavTab.HOME) }
-
-    // Voice Mode specific state
     var isVoiceModeActive by remember { mutableStateOf(false) }
 
     if (isVoiceModeActive) {
@@ -57,38 +58,48 @@ fun HomeScreen(appModule: AppModule? = null) {
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                when (selectedTab) {
-                    NavTab.HOME -> {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            KyroOrb(
-                                isListening = false,
-                                modifier = Modifier.clickable {
-                                    isVoiceModeActive = true
+                Crossfade(
+                    targetState = selectedTab,
+                    animationSpec = tween(300),
+                    label = "TabTransition"
+                ) { tab ->
+                    when (tab) {
+                        NavTab.HOME -> {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                KyroOrb(
+                                    isListening = false,
+                                    modifier = Modifier.clickable {
+                                        isVoiceModeActive = true
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(32.dp))
+                                Text(
+                                    text = "TAP TO WAKE",
+                                    color = MutedPewter,
+                                    style = androidx.compose.ui.text.TextStyle(
+                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+                        }
+                        NavTab.CHAT -> Text("CHAT HISTORY", color = WarmIvory)
+                        NavTab.ACTIVITY -> Text("ACTIVITY TRACKER", color = WarmIvory)
+                        NavTab.HOURS -> Text("HOURS & SCREEN TIME", color = WarmIvory)
+                        NavTab.SETUP -> {
+                            val currentUrl = appModule?.termuxServerClient?.serverUrl ?: "http://127.0.0.1:8080/completion"
+                            SetupScreen(
+                                currentUrl = currentUrl,
+                                onUrlChange = { appModule?.updateServerUrl(it) },
+                                onSave = {
+                                    appModule?.ttsEngine?.speak("Configuration saved.")
                                 }
                             )
-                            Spacer(modifier = Modifier.height(32.dp))
-                            Text(
-                                text = "TAP TO WAKE",
-                                color = MutedPewter,
-                                style = androidx.compose.ui.text.TextStyle(
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            )
                         }
-                    }
-                    NavTab.CHAT -> Text("CHAT HISTORY", color = WarmIvory)
-                    NavTab.ACTIVITY -> Text("ACTIVITY TRACKER", color = WarmIvory)
-                    NavTab.HOURS -> Text("HOURS & SCREEN TIME", color = WarmIvory)
-                    NavTab.SETUP -> {
-                        val currentUrl = appModule?.termuxServerClient?.serverUrl ?: "http://127.0.0.1:8080/completion"
-                        SetupScreen(
-                            currentUrl = currentUrl,
-                            onUrlChange = { appModule?.updateServerUrl(it) },
-                            onSave = {
-                                appModule?.ttsEngine?.speak("Configuration saved.")
-                            }
-                        )
                     }
                 }
             }
@@ -109,16 +120,30 @@ fun KyroBottomBar(selectedTab: NavTab, onTabSelected: (NavTab) -> Unit) {
     ) {
         NavTab.values().forEach { tab ->
             val isSelected = selectedTab == tab
+
+            // Animated background color for smoother transition
+            val bgColor by animateColorAsState(
+                targetValue = if (isSelected) Amber.copy(alpha = 0.2f) else Color.Transparent,
+                animationSpec = tween(300),
+                label = "TabBgColor"
+            )
+
+            val contentColor by animateColorAsState(
+                targetValue = if (isSelected) Amber else MutedPewter,
+                animationSpec = tween(300),
+                label = "TabContentColor"
+            )
+
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(24.dp))
-                    .background(if (isSelected) Amber.copy(alpha = 0.2f) else Color.Transparent)
+                    .background(bgColor)
                     .clickable { onTabSelected(tab) }
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
-                    text = tab.name.take(3), // Shorten for bottom bar
-                    color = if (isSelected) Amber else MutedPewter,
+                    text = tab.name.take(3),
+                    color = contentColor,
                     style = androidx.compose.ui.text.TextStyle(
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
