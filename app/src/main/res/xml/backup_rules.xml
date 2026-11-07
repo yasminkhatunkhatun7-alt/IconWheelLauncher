@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+   Sample backup rules. In your app, you may want to back up files
+   so that a user can easily restore them on a new device.
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="."/>
+</full-backup-content>

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Kyro</string>
+    <string name="accessibility_service_description">KYRO Automation Service for Screen Reading and App Control.</string>
+</resources>
